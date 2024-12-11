@@ -1,0 +1,7 @@
+{
+    "appName": "JSON demo",
+    "connectionStrings":{
+        "localDB": "local DB connection string",
+        "remoteDB": "remote DB connection string"
+    }
+}
