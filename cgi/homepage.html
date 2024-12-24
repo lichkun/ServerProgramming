@@ -14,6 +14,7 @@
     </p>
     <button onclick="api1()">GET API-1</button>
     <button onclick="api1p()">POST API-1</button>
+    <button onclick="testUnsupported()">Unsupported</button>
     <h2>Registration</h2>
     <form id="reg-form">
         <label for="username">Username:</label><br>
@@ -69,6 +70,19 @@
             .then(r=> r.text())
             .then(t => out.innerHTML = t);
         }
+
+        function testUnsupported() {
+        fetch('http://cgi213.loc/user/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/html'
+            },
+            body: '<html><body>Test</body></html>'
+        })
+        .then(r => r.json())
+        .then(j => out.innerText = JSON.stringify(j, null, 2))
+        .catch(err => out.innerText = err);
+         }
     </script>
 </body>
 </html>

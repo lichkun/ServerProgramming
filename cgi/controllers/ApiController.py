@@ -25,6 +25,12 @@ class ApiController:
     def serve(self, am_data):
         self.am_data = am_data
         method = am_data['envs']["REQUEST_METHOD"]
+
+        content_type = am_data['envs'].get('CONTENT_TYPE', '')
+        if content_type.startswith("multipart/form-data"):
+            self.handle_multipart(am_data)
+            return
+
         self.response.meta.add('method', method)
         action_name = f"do_{method.lower()}"
         controller_action = getattr(self, action_name , None)
@@ -41,3 +47,5 @@ class ApiController:
         print("Access-Control-Allow-Methods: GET, POST, PUT, DELETE")
         print()
         exit()
+
+    

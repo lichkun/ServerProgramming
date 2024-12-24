@@ -31,6 +31,22 @@ def send_json(data):
     print(json.dumps(data))
     exit()
 
+from email.parser import BytesParser
+from io import BytesIO
+
+def parse_body():
+    content_length = int(os.environ.get('CONTENT_LENGTH', 0))
+    content_type = os.environ.get('CONTENT_TYPE', '')
+    if content_type.startswith("multipart/form-data"):
+        boundary = content_type.split("boundary=")[-1]
+        raw_data = sys.stdin.buffer.read(content_length)
+        body = BytesParser().parsebytes(raw_data, _class=BytesIO)
+        return body
+    elif content_type == "application/json":
+        raw_data = sys.stdin.read(content_length)
+        return json.loads(raw_data)
+    return None
+
 import os
 envs= {k: v for k,v in os.environ.items() if k in ('REQUEST_METHOD', 'QUERY_STRING', 'REQUEST_URI')}
 path = envs['REQUEST_URI']
@@ -55,6 +71,7 @@ import importlib
 from data.db_context import DbContext
 
 try:
+    body = parse_body()
     controller_module = importlib.import_module(f'controllers.{controller}.{controller_name}')
     controller_class = getattr(controller_module, controller_name)
     controller_object = controller_class()
@@ -65,6 +82,7 @@ try:
         'controller': controller,
         'category': category,
         'slug': slug,
+        'body': body,
         'db_contex': DbContext()
     })
 except Exception as err:  

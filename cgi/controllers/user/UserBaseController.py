@@ -26,3 +26,5 @@ class UserBaseController(ApiController):
                 'db': self.db_context.test_connection(),
                 'user': user}
     
+    def handle_multipart(self):
+        self.end_with(200, {'message': 'Handled multipart/form-data'})
