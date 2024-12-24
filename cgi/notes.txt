@@ -1,0 +1,50 @@
+CGI - Common Gateway Interface - интерфейс общего канала
+набор требований для веб-сервера для поддержки правил запуска 
+сторонних скриптов
+
+1. Устанавливаем веб-сервер, на пример Apache 2.4
+ - скачивем архив / устанавливаем сборку ( XAMPP, OpenServer, Danver еще)
+ - настраиваем CGI - добавляем до исполнительных файлов .py
+  = находим файл конф httpd.conf
+  = находим перечесление индексных файлов ( ~286 строка)
+    DirectoryIndex index.php index.pl...
+    добавляем отсутствующий
+
+
+    <VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot "D:/Projects/python/Server-213/cgi"
+    ServerName cgi213.loc
+    ServerAlias www.cgi213.loc
+    ErrorLog "D:/Projects/python/Server-213/cgi/logs/error.log"
+    CustomLog "D:/Projects/python/Server-213/cgi/logs/access.log" common
+    <Directory "D:/Projects/python/Server-213/cgi">
+        AllowOverride All
+        Options -Indexes +ExecCGI
+        AddHandler cgi-script .py
+        Require all granted
+    </Directory> 
+</VirtualHost>
+ = убеждаемся в создании директории, которые указаны в конигурации 
+    (.../cgi, /cgi/logs/) файлы error.log, access.log создавать не надо 
+ = созраняем все изменёные файлы, перезапускаем Apache (если он будет успешен, появится .log файлы)
+ - добавляем запись к локальному DNS для нашего сайта. Для OC Windows
+ C:\Windows\System32\drivers\etc\hosts
+    127.0.0.1   cgi213.loc
+    ::1         cgi213.loc
+    127.0.0.1   www.cgi213.loc
+    ::1         www.cgi213.loc
+= создаем файл index.html (Hello, World)
+- Для проверки запускаем браузер та вводим http
+    http://cgi213.loc
+
+2. Настраиваем скрипты для работы с CGI 
+ - все скрипты начинаются с коментаря, в кототром обозначается 
+   строка запуска даного скрипта
+   #!C:/Users/nikit/AppData/Local/Programs/Python/Python313/python.exe
+ - скрипт должен вывводить то, что будет передано серверу, притом пакет HTTP полностью 
+   формируется самим скриптом, только сервер долежн иметь статус 200
+   Соответсвенно, формируются заголовки и тело ответа
+    print("Content-Type: text/html")        ##Заголовки, как миниму Content-Type
+    print()                                 ##Пустая строка отделяет тело
+    print("<h1>Hello, CGI</h1>", end="")    ##Тело

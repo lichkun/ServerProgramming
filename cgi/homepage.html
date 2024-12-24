@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGI-213</title>
+</head>
+<body>
+    <h1>Python - Apache CGI</h1>
+    <p>
+        CGI - Common Gateway Interface - интерфейс общего канала
+        набор требований для веб-сервера для поддержки правил запуска 
+        сторонних скриптов
+    </p>
+    <button onclick="api1()">GET API-1</button>
+    <button onclick="api1p()">POST API-1</button>
+    <h2>Registration</h2>
+    <form id="reg-form">
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required value="Артем"><br><br>
+ 
+        <label for="email">Email:</label><br>
+        <input type="email" id="email" name="email" required value="artem@gamil.com"><br><br>
+ 
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required value="Ериняк"><br><br>
+ 
+        <label for="confirm_password">Confirm password:</label><br>
+        <input type="password" id="confirm_password" name="confirm_password" required value="Ериняк"><br><br>
+ 
+        <button type="submit">Register</button>
+    </form>
+    <p id="out"></p>
+    <script>
+        document.addEventListener('submit', e=>{
+            const form= e.target;
+            if(form.id == "reg-form"){
+                e.preventDefault()
+                fetch("api/reg",{
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body:// new FormData(form) // --multipart
+                     new URLSearchParams(new FormData(form)).toString()
+                })
+                .then(r=>r.text())
+                .then(t=>out.innerHTML= t)
+            }
+        })
+        function api1(){
+            fetch("/api2?x=10&b=true&name=Артем&&json")
+            .then(r=> r.text())
+            .then(t => out.innerHTML = t);
+        }
+        function api1p(){
+            fetch("/api1/b", {
+                method: 'POST',
+                headers:{
+                    'Content-Type': 'application/json',
+                    'Content-Lenght': 0,
+                    'My-Header': 'My Value'
+                },
+                body: JSON.stringify({
+                    "name": "Артем",
+                    "surname": "Ериняк"
+                })
+            })
+            .then(r=> r.text())
+            .then(t => out.innerHTML = t);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button onclick="testGet()">GET</button>
+    <button onclick="testPost()">POST</button>
+    <p id="out"></p>
+    <script>
+        function testGet(){
+            fetch('http://cgi213.loc/user/')
+            .then(r=>r.json())
+            .then(j => out.innerText = JSON.stringify(j, null,2))
+        }
+        function testPost(){
+            fetch('http://cgi213.loc/user/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'user-name': 'Петрович',
+                    'user-email': 'Петрович@gmail.com',
+                    'user-password': '123'
+                })
+            }
+            )
+            .then(r=>r.json())
+            .then(j => out.innerText = JSON.stringify(j, null,2))
+        }
+    </script>
+</body>
+</html>
