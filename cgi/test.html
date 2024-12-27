@@ -1,38 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>CGI Request Tester</title>
+    <style>
+        .output-container {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .button-group {
+            margin: 10px 0;
+        }
+        button {
+            margin: 0 5px;
+            padding: 5px 10px;
+        }
+    </style>
 </head>
 <body>
-    <button onclick="testGet()">GET</button>
-    <button onclick="testPost()">POST</button>
-    <p id="out"></p>
+    <h1>CGI Request Tester</h1>
+
+    <div class="button-group">
+        <button onclick="sendJsonRequest()">Send JSON</button>
+        <button onclick="sendFormUrlEncoded()">Send Form URL-encoded</button>
+        <button onclick="sendMultipart()">Send Multipart Form-data</button>
+        <button onclick="sendUnsupportedType()">Send Unsupported Type</button>
+
+    </div>
+
+    <div class="output-container">
+        <h3>Response:</h3>
+        <pre id="output"></pre>
+    </div>
+
     <script>
-        function testGet(){
-            fetch('http://cgi213.loc/user/')
-            .then(r=>r.json())
-            .then(j => out.innerText = JSON.stringify(j, null,2))
+        function displayResponse(response, responseText) {
+            const output = document.getElementById('output');
+            try {
+                const jsonResponse = JSON.parse(responseText);
+                output.textContent = JSON.stringify(jsonResponse, null, 2);
+            } catch (e) {
+                output.textContent = responseText;
+            }
         }
-        function testPost(){
-            fetch('http://cgi213.loc/user/', {
+
+        async function sendRequest(options) {
+            try {
+                const response = await fetch("http://cgi213.loc/user/", options);
+                const text = await response.text();
+                displayResponse(response, text);
+            } catch (error) {
+                document.getElementById('output').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        function sendJsonRequest() {
+            sendRequest({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    'user-name': 'Петрович',
-                    'user-email': 'Петрович@gmail.com',
-                    'user-password': '123'
+                    name: 'John',
+                    age: 30,
+                    city: 'New York'
                 })
-            }
-            )
-            .then(r=>r.json())
-            .then(j => out.innerText = JSON.stringify(j, null,2))
+            });
         }
 
-        
+        function sendFormUrlEncoded() {
+            sendRequest({
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'name=John&age=30&city=New York'
+            });
+        }
+
+        function sendMultipart() {
+            const formData = new FormData();
+            formData.append('name', 'John');
+            formData.append('age', '30');
+            formData.append('city', 'New York');
+
+            sendRequest({
+                method: 'POST',
+                body: formData
+            });
+        }
+
+        function sendUnsupportedType() {
+            sendRequest({
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/html'
+                },
+                body: '<p>This is unsupported content</p>'
+            });
+        }
+
+
+
     </script>
 </body>
 </html>

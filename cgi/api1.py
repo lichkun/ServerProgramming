@@ -1,56 +1,100 @@
-#!C:/Users/nikit/AppData/Local/Programs/Python/Python313/python.exe
-import os, json ,urllib.parse, sys,codecs
+# !C:/Python313/python.exe
+import codecs
+import json
+import os
+import sys
+import urllib.parse
 
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 sys.stdin = codecs.getreader("utf-8")(sys.stdin.detach())
 
-#os.environ - переменные окружения, через которые передаются данные от сервера (Apache) до CGI-скрита
 
-def send_error(code: int=400, phrase: str = "Bad Request", explain: str =None):
-    print("Status: %d %s" % (code, phrase))
+def send_error(code=400, phrase="Bad Request", explain=None):
+    print(f"Status: {code} {phrase}")
+    print("Access-Control-Allow-Origin: *")
     print("Content-Type: text/plain; charset=utf-8")
     print()
-    print( explain if explain != None else phrase, end='')
+    print(explain if explain else phrase)
     exit()
 
 
-envsUL = '<ul>'+ ''.join("<li>%s= %s</li>" % (k,v) for k,v in os.environ.items())+ "</ul>"
+def parse_multipart_form_data(body, content_type):
+    """Parses multipart/form-data."""
+    boundary = "--" + content_type.split("boundary=")[1]
+    parts = body.split(boundary)
+    parts = parts[1:-1]
+    parsed_data = {}
 
-envs= {k: v for k,v in os.environ.items() if k in ('REQUEST_METHOD', 'QUERY_STRING', 'REQUEST_URI')}
-# в переменные окружения заголовки идут с ключами, которые начинаются "HTTP_"
-# дальше в верхнем регистре идёт заголовок, в котором "-" измененые на "_"
-# Исключения: Content-Type и Content-Lenght, которые будут без префикса
-headers =  {(k[5:] if k.startswith('HTTP_') else k).lower().replace("_","-"): v
-             for k,v in os.environ.items() 
-             if k.startswith("HTTP_") or k in ('CONTENT_TYPE,CONTENT_LENGTH')} 
+    for part in parts:
+        if not part.strip():
+            continue
+        headers, content = part.split("\r\n\r\n", maxsplit=1)
+        content = content.rstrip("\r\n")
+
+        headers_dict = {}
+        for header_line in headers.split("\r\n"):
+            if ": " in header_line:
+                key, value = header_line.split(": ", maxsplit=1)
+                headers_dict[key.lower()] = value
+
+        disposition = headers_dict.get("content-disposition", "")
+        if "name=" in disposition:
+            field_name = disposition.split('name="')[1].split('"')[0]
+            parsed_data[field_name] = content
+
+    return parsed_data
+
+
+envs = {
+    k: v for k, v in os.environ.items()
+    if k in ('REQUEST_METHOD', 'QUERY_STRING', 'REQUEST_URI')
+}
+headers = {
+    (k[5:] if k.startswith('HTTP_') else k).lower().replace("_", "-"): v
+    for k, v in os.environ.items()
+    if k.startswith('HTTP_') or k in ('CONTENT_TYPE', 'CONTENT_LENGTH')
+}
 
 query_string = urllib.parse.unquote(envs['QUERY_STRING'], encoding="utf-8")
-query_params= dict( pair.split('=', maxsplit=1 )if '=' in pair  else (pair, None)
-                for pair in query_string.split('&') if pair != "")
+query_parameters = dict(
+    pair.split('=', maxsplit=1) if '=' in pair else (pair, None)
+    for pair in query_string.split('&') if pair
+)
 
-body_parameters={}
+body_parameters = {}
 body = sys.stdin.read()
-if body != '' :
-    # если есть тело, то нужно определить Content-Type
-    if headers['content-type'] == 'application/json':
-        body_parameters = json.loads(body)
-    elif headers['content-type'] == 'application/x-www-form-urlencoded':
-        body_parameters = dict( pair.split('=', maxsplit=1 )  
-                for pair in urllib.parse.unquote(body).split('&') if pair != "" and '=' in pair )
-    else :
-        send_error(415, "Unsupported Media Type", "Supported MIME: 'application/json' , 'aplication/x-www-form-urlencoded' ")
+if body:
+    content_type = headers.get('content-type', '')
+    if content_type == 'application/json':
+        try:
+            body_parameters = json.loads(body)
+        except json.JSONDecodeError:
+            send_error(400, "Bad Request", "Invalid JSON format")
+    elif content_type == 'application/x-www-form-urlencoded':
+        body_parameters = dict(
+            pair.split('=', maxsplit=1)
+            for pair in urllib.parse.unquote(body).split('&') if '=' in pair
+        )
+    elif content_type.startswith('multipart/form-data'):
+        body_parameters = parse_multipart_form_data(body, content_type)
+    else:
+        send_error(415, "Unsupported Media Type",
+                   "Supported types: application/json, application/x-www-form-urlencoded, multipart/form-data")
 
-# envs['REQUEST_URI'] - адрес запроса (без хоста), но с QUERY_STRING 
-# поскольку QUERY_STRING обработан отдельно, убираем его из адресса
-# В файл .htaccess добавляем шаблонное правило (которое содержит .+ или .*) и это позволяет 
-# переходить к основному скрипту из разных запросов, то есть реализовать маршрутизацию
 path = envs['REQUEST_URI']
-if '?' in path :
-    path = path[:(path.index('?'))]
+if '?' in path:
+    path = path[:path.index('?')]
 
+response_data = {
+    "status": 200,
+    "method": envs['REQUEST_METHOD'],
+    "path": path,
+    "query_parameters": query_parameters,
+    "headers": headers,
+    "body_parameters": body_parameters,
+}
 
 print("Content-Type: application/json; charset=utf-8")
+print("Access-Control-Allow-Origin: *")
 print()
-print(json.dumps(body_parameters, ensure_ascii=False), end="")
-#print(envsUL+ "<pre>"+body+"</pre>", end="")
-
+print(json.dumps(response_data, ensure_ascii=False, indent=2))
